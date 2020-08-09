@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 
 import Card from '../UI/Card';
+import LoadingIndication from '../UI/LoadingIndicator';
 import './IngredientForm.css';
 
+
 const IngredientForm = React.memo(props => {
+  const { loading } = props;
   const [enteredTitle, setEnteredTitle] = useState('');
   const [enteredAmount, setEnteredAmount] = useState('');
 
@@ -40,11 +44,17 @@ const IngredientForm = React.memo(props => {
           </div>
           <div className="ingredient-form__actions">
             <button type="submit">Add Ingredient</button>
+            {loading && <LoadingIndication />}
           </div>
         </form>
       </Card>
     </section>
   );
 });
+
+IngredientForm.propTypes = {
+  loading:PropTypes.bool.isRequired,
+  onAddIngredient: PropTypes.func.isRequired
+}
 
 export default IngredientForm;
