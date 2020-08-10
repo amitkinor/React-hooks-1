@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useReducer, useState, useEffect, useCallback } from "react";
 
 import IngredientForm from "./IngredientForm";
 import IngredientList from "./IngredientList";
@@ -6,8 +6,22 @@ import Search from "./Search";
 import errModal from '../UI/ErrorModal';
 import ErrorModal from "../UI/ErrorModal";
 
+const ingredientReducer = (currentIngredients, action) => {
+  switch (action.type) {
+    case 'SET':
+      return action.ingredients;
+    case 'ADD':
+      return [...currentIngredients, action.ingredient];
+    case 'DELETE':
+      return currentIngredients.filter( ing => ing.id !== action.id);
+    default:
+      throw new Error('Sould not gt there!');
+  }
+}
+
 const Ingredients = () => {
-	const [userIngredients, setUserIngredients] = useState([]);
+  const [userIngredients, dispatch] = useReducer(ingredientReducer, [])
+	//const [userIngredients, setUserIngredients] = useState([]);
   const [loadingState, setLoading] = useState(false);
   const [error, setError] = useState();
 
@@ -23,10 +37,11 @@ const Ingredients = () => {
 			return response.json();
 		})
 		.then((responseData) => {
-			setUserIngredients((prevIngredients) => [
-				...prevIngredients,
-				{ id: responseData.name, ...ingredient }
-			]);
+			// setUserIngredients((prevIngredients) => [
+			// 	...prevIngredients,
+			// 	{ id: responseData.name, ...ingredient }
+      // ]);
+      dispatch({type:'ADD', ingredient: { id: responseData.name, ...ingredient }})
 		});
 	};
 
@@ -41,9 +56,10 @@ const Ingredients = () => {
     })
     .then((responseData) => {
 			setLoading(false);
-			setUserIngredients((prevIngredients) =>
-				prevIngredients.filter((ing) => ing.id !== id)
-			);
+			// setUserIngredients((prevIngredients) =>
+			// 	prevIngredients.filter((ing) => ing.id !== id)
+      // );
+      dispatch({type:'DELETE',id:id});
     })
     .catch(err => {
       setError(err.message);
@@ -52,7 +68,8 @@ const Ingredients = () => {
 	};
 
 	const ingsUpdateFilterHandler = useCallback((filteredIngs) => {
-		setUserIngredients(filteredIngs);
+    //setUserIngredients(filteredIngs);
+    dispatch({type: 'SET', ingredients: filteredIngs})
 	}, []);
 
   const clearError = () => {
