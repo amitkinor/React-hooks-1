@@ -1,10 +1,16 @@
-import React, { useReducer, useState, useEffect, useCallback } from "react";
+import React, { useReducer, useEffect, useCallback, useMemo } from "react";
 
 import IngredientForm from "./IngredientForm";
 import IngredientList from "./IngredientList";
 import Search from "./Search";
-import errModal from '../UI/ErrorModal';
+//import errModal from '../UI/ErrorModal';
 import ErrorModal from "../UI/ErrorModal";
+
+
+/*
+  * commented out all the setState usage after replacing them 
+  *  with useReducer
+*/
 
 const ingredientReducer = (currentIngredients, action) => {
   switch (action.type) {
@@ -19,21 +25,39 @@ const ingredientReducer = (currentIngredients, action) => {
   }
 }
 
-const Ingredients = () => {
-  const [userIngredients, dispatch] = useReducer(ingredientReducer, [])
-	//const [userIngredients, setUserIngredients] = useState([]);
-  const [loadingState, setLoading] = useState(false);
-  const [error, setError] = useState();
+const httpReducer = (curHttpstate, action) => {
+  switch(action.type) {
+    case  'SEND':
+      return {loading: true, error:null};
+    case  'RESPONSE':
+      return { ...curHttpstate, loading: false};
+    case  'ERROR':
+      return {loading: false, error:action.errorData};
+      case 'CLEAR_ERROR':
+        return {...curHttpstate, error:null};
+    default:
+      throw new Error('should not be reached!');
+  }
+}
 
-	const addIngredientHandler = (ingredient) => {
-		setLoading(true);
+const Ingredients = () => {
+  const [userIngredients, dispatchIngs] = useReducer(ingredientReducer, []);
+  const [httpState, dispatchHttp] = useReducer(httpReducer,{loading: false, error:null});
+	// const [userIngredients, setUserIngredients] = useState([]);
+  // const [loadingState, setLoading] = useState(false);
+  // const [error, setError] = useState();
+
+	const addIngredientHandler = useCallback((ingredient) => {
+    //setLoading(true);
+    dispatchHttp({type:'SEND'});
 		fetch("https://react-hooks-cd19d.firebaseio.com/ingredients.json", {
 			method: "POST",
 			body: JSON.stringify(ingredient),
 			headers: { "Content-Type": "application/json" },
 		})
 		.then((response) => {
-			setLoading(false);
+      //setLoading(false);
+      dispatchHttp({type:'RESPONSE'});
 			return response.json();
 		})
 		.then((responseData) => {
@@ -41,53 +65,65 @@ const Ingredients = () => {
 			// 	...prevIngredients,
 			// 	{ id: responseData.name, ...ingredient }
       // ]);
-      dispatch({type:'ADD', ingredient: { id: responseData.name, ...ingredient }})
+      dispatchIngs({type:'ADD', ingredient: { id: responseData.name, ...ingredient }})
 		});
-	};
+	},[]);
 
 	useEffect(() => console.log("rendering ingredients", userIngredients), [
 		userIngredients,
 	]);
 
-	const removeItemHandler = (id) => {
-		setLoading(true);
-		fetch(`https://react-hooks-cd19d.firebaseio.com//ingredients/${id}.json`, {
-			method: "DELETE",
+	const removeItemHandler = useCallback((id) => {
+    //setLoading(true);
+    dispatchHttp({type:'SEND'});
+		fetch(`https://react-hooks-cd19d.firebaseio.com//ingredients/${id}.jsn`, {
+			method: "DELETE"
     })
     .then((responseData) => {
-			setLoading(false);
+			dispatchHttp({type:'RESPONSE'});
 			// setUserIngredients((prevIngredients) =>
 			// 	prevIngredients.filter((ing) => ing.id !== id)
       // );
-      dispatch({type:'DELETE',id:id});
+      dispatchIngs({type:'DELETE',id:id});
     })
     .catch(err => {
-      setError(err.message);
-      setLoading(false);
+      //setError(err.message);
+      //setLoading(false);
+      dispatchHttp({type:'ERROR', errorData:'something'});
+      //console.log(`this is the error: ${err}`);
     });
-	};
+	},[]);
 
 	const ingsUpdateFilterHandler = useCallback((filteredIngs) => {
     //setUserIngredients(filteredIngs);
-    dispatch({type: 'SET', ingredients: filteredIngs})
+    dispatchIngs({type: 'SET', ingredients: filteredIngs})
 	}, []);
 
   const clearError = () => {
-    setError(null);
+    //setError(null);
+    dispatchHttp({type:'CLEAR_ERROR'});
   }
 
-	return (
+  const ingredientList = useMemo(() => {
+    return (
+      <IngredientList
+				ingredients={userIngredients}
+				onRemoveItem={removeItemHandler}
+			/>
+    )
+  }, [userIngredients, removeItemHandler]);
+
+  return (
 		<div className="App">
-      {error && <ErrorModal onClose={clearError}> {error} </ErrorModal>}
+      {httpState.error && 
+        (<ErrorModal onClose={clearError}> {httpState.error} </ErrorModal>)
+      }
       <IngredientForm 
         onAddIngredient={addIngredientHandler}
-        loading={loadingState} />
+        loading={httpState.loading} />
 			<section>
 				<Search updateFilterHandler={ingsUpdateFilterHandler} />
-				<IngredientList
-					ingredients={userIngredients}
-					onRemoveItem={removeItemHandler}
-				/>
+				{ingredientList}
 			</section>
 		</div>
 	);
