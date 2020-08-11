@@ -1,11 +1,21 @@
 import React , { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 
-
+import useHttp from '../hooks/http';
 import Card from '../UI/Card';
 import './Search.css';
+import ErrorModal from '../UI/ErrorModal';
+import LoadingIndication from '../UI/LoadingIndicator';
 
 const Search = React.memo(props => {
+
+  const {
+		loading,
+		data,
+		error,
+		sendRequest,
+		clear,
+	} = useHttp();
 
    const { updateFilterHandler } = props;
    const [enteredFilter, setEntered] = useState('');
@@ -17,32 +27,39 @@ const Search = React.memo(props => {
         const querry = enteredFilter.length === 0
         ? ''
         : `?orderBy="title"&equalTo="${enteredFilter}"`;
-      fetch('https://react-hooks-cd19d.firebaseio.com//ingredients.json' + querry)
-        .then((response) => response.json())
-        .then(responseData => {
-          const loadedIngredients = [];
-          for (const key in responseData) {
-            loadedIngredients.push({
-              id: key,
-              title: responseData[key].title,
-              amount: responseData[key].amount,
-            });
-          }
-         updateFilterHandler(loadedIngredients);
-        }); 
+      
+        sendRequest(
+          'https://react-hooks-cd19d.firebaseio.com//ingredients.json' + querry,
+          'GET');
       }    
     }, 500);
     return () => {
       clearTimeout(timer);
     };
     
-  },[enteredFilter, updateFilterHandler, inputRef]);
+  },[enteredFilter, inputRef, sendRequest]);
+
+  useEffect(() => {
+    if (!loading && !error && data){
+      const loadedIngredients = [];
+        for (const key in data) {
+          loadedIngredients.push({
+            id: key,
+            title: data[key].title,
+            amount: data[key].amount,
+          });
+        }
+      updateFilterHandler(loadedIngredients);
+    }
+  },[data, error, loading, updateFilterHandler] )
 
   return (
     <section className="search">
+      {error && <ErrorModal onClose={clear}> {error} </ErrorModal>}
       <Card>
         <div className="search-input">
           <label>Filter by Title</label>
+          {loading && <span> Loading... </span>}
           <input ref={inputRef} type="text" value={enteredFilter} onChange={(event) => setEntered(event.target.value)}/>
         </div>
       </Card>

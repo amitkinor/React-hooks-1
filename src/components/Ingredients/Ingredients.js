@@ -21,48 +21,53 @@ const ingredientReducer = (currentIngredients, action) => {
 
 const Ingredients = () => {
 	const [userIngredients, dispatchIngs] = useReducer(ingredientReducer, []);
-	const { loading, data, error, sendRequest, reqExtra, reqIdentifier} = useHttp();
+	const {
+		loading,
+		data,
+		error,
+		sendRequest,
+		reqExtra,
+		reqIdentifier,
+		clear,
+	} = useHttp();
 
-	const addIngredientHandler = useCallback((ingredient) => {
-    sendRequest(
-      'https://react-hooks-cd19d.firebaseio.com/ingredients.json',
-      'POST',
-      JSON.stringify(ingredient),
-      ingredient,
-      'ADD_INGREDIENT');
-	}, [sendRequest]);
+	const addIngredientHandler = useCallback(
+		(ingredient) => {
+			sendRequest(
+				"https://react-hooks-cd19d.firebaseio.com/ingredients.json",
+				"POST",
+				JSON.stringify(ingredient),
+				ingredient,
+				"ADD_INGREDIENT"
+			);
+		},
+		[sendRequest]
+	);
 
-  useEffect(() => {
-    if(!loading && !error && reqIdentifier === 'REMOVE_INGREDIENT'){
-      dispatchIngs({type:'DELETE', id:reqExtra})
-    } else if (!loading && !error && reqIdentifier === 'ADD_INGREDIENT'){
-      dispatchIngs({type:'ADD', ingredient: { id: data.name, ...reqExtra }})
-    }}
-    ,
-   [data, reqExtra,reqIdentifier, loading, error ]);
+	useEffect(() => {
+		if (!loading && !error && reqIdentifier === "REMOVE_INGREDIENT") {
+			dispatchIngs({ type: "DELETE", id: reqExtra });
+		} else if (!loading && !error && reqIdentifier === "ADD_INGREDIENT") {
+			dispatchIngs({ type: "ADD", ingredient: { id: data.name, ...reqExtra } });
+		}
+	}, [data, reqExtra, reqIdentifier, loading, error]);
 
 	const removeItemHandler = useCallback(
 		(id) => {
 			sendRequest(
 				`https://react-hooks-cd19d.firebaseio.com/ingredients/${id}.json`,
-        "DELETE",
-        null,
-        id,
-        'REMOVE_INGREDIENT'
+				"DELETE",
+				null,
+				id,
+				"REMOVE_INGREDIENT"
 			);
 		},
 		[sendRequest]
 	);
 
 	const ingsUpdateFilterHandler = useCallback((filteredIngs) => {
-		//setUserIngredients(filteredIngs);
 		dispatchIngs({ type: "SET", ingredients: filteredIngs });
 	}, []);
-
-	const clearError = () => {
-		//setError(null);
-		//dispatchHttp({ type: "CLEAR_ERROR" });
-	};
 
 	const ingredientList = useMemo(() => {
 		return (
@@ -75,7 +80,7 @@ const Ingredients = () => {
 
 	return (
 		<div className="App">
-			{error && <ErrorModal onClose={clearError}> {error} </ErrorModal>}
+			{error && <ErrorModal onClose={clear}> {error} </ErrorModal>}
 			<IngredientForm
 				onAddIngredient={addIngredientHandler}
 				loading={loading}
